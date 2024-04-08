@@ -77,7 +77,9 @@ async Task Update(ITelegramBotClient client, Update update, CancellationToken to
 			}
 			else if(update.CallbackQuery.Data == "register")
 			{
-				RegisterEmail = true;
+				//update.CallbackQuery.From.Id;
+                await client.SendTextMessageAsync(update.CallbackQuery.From.Id, $"fff");
+                RegisterEmail = true;
 				BotAnswer(client, update.Message ,"Отправьте вашу почту.");    //TODO: не ловит Chat.Id
 			}
 			break;
@@ -360,9 +362,18 @@ return filePath;
 
 static async Task ProccesSendAudio(ITelegramBotClient client, Update update)
 {
-
-	Stream stream = System.IO.File.OpenRead(@"D:\wpf work now\TelegramBotExample\TelegramBotExample\Resource\Audio\audioplayback.weba");
-	await client.SendAudioAsync(update.Message.Chat.Id, InputFile.FromStream(stream));
+	try
+	{
+		string filePath = @$"{Environment.CurrentDirectory}\Resource\Audio\audioplayback.weba";
+        Stream stream = System.IO.File.OpenRead(filePath);
+         await client.SendAudioAsync(update.Message.Chat.Id, InputFile.FromStream(stream));
+    }
+	catch(Exception e)
+	{
+		ConsoleControl(update);
+		Console.WriteLine(e.Message.ToString());
+		Console.WriteLine();
+	}
 	
 	
 }
@@ -396,7 +407,7 @@ static async Task MenuButtons(ITelegramBotClient client, Message message)
 static async Task CardPostWithLink(ITelegramBotClient client, Message message)
 {
 	var link = new Hyperlink() { NavigateUri = new Uri("http://stackoverflow.com"), Name = "жмакни" };
-	using (Stream stream = System.IO.File.OpenRead(@"D:\wpf work now\TelegramBotExample\TelegramBotExample\Resource\Image\закат.jpg"))
+	using (Stream stream = System.IO.File.OpenRead(@$"{Environment.CurrentDirectory}\Resource\Image\закат.jpg"))
 	{
 		await client.SendPhotoAsync(
 			message.Chat.Id,

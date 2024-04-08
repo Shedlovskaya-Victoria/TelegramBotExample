@@ -8,6 +8,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resource\Audio\audioplayback.weba" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resource\Audio\audioplayback.weba">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Aspose.Email" Version="24.3.0" />
     <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.36.0" />
     <PackageReference Include="Telegram.Bot" Version="19.0.0" />
