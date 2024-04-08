@@ -1,0 +1,410 @@
+﻿// See https://aka.ms/new-console-template for more information
+using System.IO;
+using System.Security;
+using Microsoft.CognitiveServices.Speech;
+using Microsoft.CognitiveServices.Speech.Audio;
+using Telegram.Bot;
+using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
+using TelegramBotExample.Tools;
+using Windows.Media.SpeechSynthesis;
+using Windows.UI.Text;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Documents;
+using static System.Net.WebRequestMethods;
+using File = System.IO.File;
+bool RegisterEmail = false;
+bool RegisterPassword = false;
+string Email = "";
+PasswordBox Password = new();
+
+Console.WriteLine("Hello, World!");
+try
+{
+	/*ну типа воспроизвести текст из аудио
+    // Initialize a new instance of the SpeechSynthesizer.
+    SpeechSynthesizer synth = new SpeechSynthesizer();
+
+	// Configure the audio output. 
+	var stream = await synth.SynthesizeTextToStreamAsync("This example demonstrates a basic use of Speech Synthesizer");
+	
+	var voices = synth.Voice.Language;
+	MediaElement media = new();
+	media.SetSource(stream, stream.ContentType);
+	media.Play();
+	*/
+
+	var bot = new TelegramBotClient("7181923998:AAFlrKT-pYE2VtD9lNn5akJTiH553fCxiRs");
+  //  await bot.DeleteWebhookAsync();
+	bot.StartReceiving(Update, Exaption);
+	
+}
+catch (Exception ex)
+{
+	Console.WriteLine();
+	Console.WriteLine("Ошибка!");
+	Console.WriteLine();
+	Console.WriteLine(ex.ToString());
+	Console.WriteLine();
+}
+
+
+Task Exaption(ITelegramBotClient client, Exception exception, CancellationToken token)
+{
+	Console.WriteLine();
+	Console.WriteLine("Ошибка!");
+	Console.WriteLine();
+	Console.WriteLine(exception.Message.ToString());
+	Console.WriteLine();
+
+	return null;
+}
+
+async Task Update(ITelegramBotClient client, Update update, CancellationToken token)
+{
+	switch (update.Type)
+	{
+		case UpdateType.CallbackQuery:
+
+			if(update.CallbackQuery.Data == "audio")
+			{
+				await ProccesSendAudio(client, update);
+			}
+			else if(update.CallbackQuery.Data == "document")
+			{
+
+			}
+			else if(update.CallbackQuery.Data == "register")
+			{
+				RegisterEmail = true;
+				BotAnswer(client, update.Message ,"Отправьте вашу почту.");    //TODO: не ловит Chat.Id
+			}
+			break;
+		default:
+			break;
+	}
+	if (update.Message != null)
+	{
+		ConsoleControl(update);
+
+		TextProcess(client, update.Message);
+
+		if (RegisterEmail == true)
+		{
+				Email = update.Message.Text;
+
+			RegisterEmail = false;
+			RegisterPassword = true;
+			BotAnswer(client, update.Message, "Отправьте пароль.");
+		}
+		if (RegisterPassword == true)
+		{
+			Password.Password =  update.Message.Text ;
+			RegisterPassword = false;
+
+			RegisterWithEmail.Register(Email);          //TODO:
+
+			BotAnswer(client, update.Message, 
+				"Поздравляю! На каком-то несуществующем сайте вы дай бог зарегистрованы, проверьте вашу почту.");
+		}
+
+		if (update.Message.Photo != null)
+		{
+			await BotAnswer(client, update.Message, "Фото это конечно круто. Я знаю о таком. " +
+				"Но лучше отошли файликом. " +
+				"Выберите другой формат при отправке");
+			return;
+		}
+
+		if (update.Message.Document != null)
+		{
+			await BotAnswer(client, update.Message, "Ща, погодь, сделаю лучше.");
+
+			await ProcessUpdatePhotoDocument(client, update);
+
+			return;
+		}
+		if (update.Message.Voice != null)
+		{
+			await BotAnswer(client, update.Message, "Ща, погодь, распознаю аудио.");
+
+			return;
+		}
+
+
+	}
+
+
+}
+/*
+ // This example requires environment variables named "SPEECH_KEY" and "SPEECH_REGION"
+     string speechKey = Environment.GetEnvironmentVariable("SPEECH_KEY");
+     string speechRegion = Environment.GetEnvironmentVariable("SPEECH_REGION");
+
+    static void OutputSpeechRecognitionResult(SpeechRecognitionResult speechRecognitionResult)
+{
+	switch (speechRecognitionResult.Reason)
+	{
+		case ResultReason.RecognizedSpeech:
+			Console.WriteLine($"RECOGNIZED: Text={speechRecognitionResult.Text}");
+			break;
+		case ResultReason.NoMatch:
+			Console.WriteLine($"NOMATCH: Speech could not be recognized.");
+			break;
+		case ResultReason.Canceled:
+			var cancellation = CancellationDetails.FromResult(speechRecognitionResult);
+			Console.WriteLine($"CANCELED: Reason={cancellation.Reason}");
+
+			if (cancellation.Reason == CancellationReason.Error)
+			{
+				Console.WriteLine($"CANCELED: ErrorCode={cancellation.ErrorCode}");
+				Console.WriteLine($"CANCELED: ErrorDetails={cancellation.ErrorDetails}");
+				Console.WriteLine($"CANCELED: Did you set the speech resource key and region values?");
+			}
+			break;
+	}
+}
+
+async Task ProcessAudioText(ITelegramBotClient client, Update update)
+{
+	var audio =	update.Message.Audio;
+
+	//var speechConfig = SpeechConfig.FromSubscription(speechKey, speechRegion);
+	//speechConfig.SpeechRecognitionLanguage = "ru-RU";
+
+	using var audioConfig = AudioConfig.FromDefaultMicrophoneInput();
+	//using var speechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
+
+	Console.WriteLine("Speak into your microphone.");
+	//var speechRecognitionResult = await speechRecognizer.RecognizeOnceAsync();
+	//OutputSpeechRecognitionResult(speechRecognitionResult);
+
+	await BotAnswer(client, update.Message, "");
+}
+*/
+async void TextProcess(ITelegramBotClient client, Message message)
+{
+	
+	if (message.Text != null)
+	{
+		if (message.Text.ToLower().StartsWith("/"))
+		{
+			if (message.Text.ToLower() == "/" | message.Text.ToLower() == "/list")
+			{
+				await BotAnswer(client, message, @"Доступные команды бота: 
+					/start - начало работы
+					/list - возвращает список команд
+					/уля-ля - секрет
+					/resource - пост с его кнопками
+					справа от поля ввода кнопки бота 
+					отправьте фотографию документом и получите улучшеную версию");
+				return;
+			}
+
+			else if (message.Text.ToLower() == "/уля-ля")
+			{
+				await BotAnswer(client, message, @"Хочу пожелать тебе большой-большой удачи во всех начинаниях! Пусть она прилагается ко всем твоим стараниям! Настойчиво и упорно иди к целям, не отступай ни на шаг и не сомневайся в себе ни на секунду. Знай, что у тебя все получится, ведь если ты по-настоящему к этому стремишься, то заслуживаешь этого!");
+				return;
+			}
+			else if (message.Text.ToLower() == "1") 
+			{
+				await BotAnswer(client, message,"11");       //TODO: не ловит простой текст
+				return;										//а ведь менюшные кнопки отправляют такой
+			}
+			
+			
+			else if (message.Text.ToLower() == "/resource")
+			{
+
+				var ikm = new InlineKeyboardMarkup(new[] 
+				{
+				
+					new[]
+					{
+						InlineKeyboardButton.WithCallbackData("аудио", "audio"),
+						InlineKeyboardButton.WithCallbackData("обработка документа", "document"),
+
+					},
+					new[]
+					{                    
+						InlineKeyboardButton.WithCallbackData("регистрация через почту", "register"),
+					},
+				});
+
+				await client.SendTextMessageAsync(message.Chat.Id, "Давайте узнаем какими функицями уже овладел бот. " +
+					"Нажмите на кнопку и посмотрим не сломает ли это ваш компьютер! " +
+					"Ух, любопытство!", replyMarkup: ikm );
+
+				return;
+			}
+			else if (message.Text.ToLower() == "/start")
+			{
+				await MenuButtons(client, message);
+				await CardPostWithLink(client, message);
+				return;
+			}
+
+		}
+		else
+		{
+			await BotAnswer(client, message, "Команда выводящая список возможностей бота: /list");
+			return;
+		}
+	}
+}
+
+Console.ReadLine();
+
+async Task BotAnswer(ITelegramBotClient client, Message message, string answer)
+{
+	await client.SendTextMessageAsync(message.Chat.Id, $"{answer}");
+}
+
+static void ConsoleControl(Update update, string button = "нет нажатия")
+{
+	Console.WriteLine();
+	Console.WriteLine($"{update.Message.Chat.FirstName ?? "Имени нет"} " +
+		$"{update.Message.Chat.LastName ?? "фамилии нет"}    |   " +
+		$"Date: {update.Message.Date}    |   " +
+		$"{update.Message.Text ?? $"текста нет. формат сообщения: {update.Message.Type}"}");
+	Console.WriteLine();
+	
+}
+
+static async Task ProcessUpdatePhotoDocument(ITelegramBotClient client, Update update)
+{
+	//получить путь
+	string? filePath = await GetFilePath(client, update);
+
+	//скачать файл
+	string? destinationFilePath = await DownloadFromTelegramToApp(client, update, filePath);
+
+	//типа улучшие фотку...
+	//TODO: проблема неподдерживаемых классов WinForms
+	/*
+	//отправить на сайт для обработки
+	Message message = await client.SendPhotoAsync(update.Message.Chat.Id,
+		InputFile.FromUri($"https://snapedit.app/ru/enhance/upload/{update.Message.Document.FileName}"));
+	//открыть браузер
+	System.Diagnostics.Process.Start(@"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe");
+	Thread.Sleep(5000);  // пауза 5 секунд
+
+	//кликаем по кнопке скачать
+	HTMLCollection elmCol;
+	var webBrowser1 = new WebBrowser();
+	elmCol = webBrowser1.Document.GetElementsByTagName("button");
+	foreach (HTMLBodyElement elmBtn in elmCol)
+	{
+		if (elmBtn.GetAttribute("className") == "inline-flex items-center justify-center w-full py-3 px-4 bg-blue-500 rounded-lg text-base transition text-white hover:bg-opacity-80")
+		{
+			elmBtn.InvokeMember("Click");
+		}
+	}
+	*/
+
+//отправить в чат
+  await SendFileToUser(client, update, destinationFilePath);
+
+ CleanAppFolder(filePath, destinationFilePath);
+}
+
+static async Task<string?> DownloadFromTelegramToApp(ITelegramBotClient client, Update update, string filePath)
+{
+//создать путь к новому файлу	
+string destinationFilePath = $@"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}\{update.Message.Document.FileName}";
+
+//проверить на сущестование его же прежде и удалить для загрузки заново
+CheckToProblemFile(destinationFilePath);
+
+//загрузить файл
+await using (Stream fileStream = System.IO.File.OpenWrite(destinationFilePath))
+	await client.DownloadFileAsync(filePath, fileStream);
+
+return destinationFilePath;
+}
+
+static void CheckToProblemFile(string destinationFilePath)
+{
+if (System.IO.File.Exists(destinationFilePath))
+	File.Delete(destinationFilePath);
+}
+
+static async Task SendFileToUser(ITelegramBotClient client, Update update, string destinationFilePath)
+{
+using (Stream stream = File.OpenRead(destinationFilePath))
+{
+	Message message = await client.SendDocumentAsync(
+	 update.Message.Chat.Id,
+	 InputFile.FromStream(stream, update.Message.Document.FileName.Replace(".jpg", "(edit).jpg")
+	 ));
+}
+}
+
+static void CleanAppFolder(string? filePath, string destinationFilePath)
+{
+if (System.IO.File.Exists(filePath))
+	File.Delete(filePath);
+
+if (System.IO.File.Exists(destinationFilePath))
+	File.Delete(destinationFilePath);
+}
+
+static async Task<string?> GetFilePath(ITelegramBotClient client, Update update)
+{
+var fileId = update.Message.Document.FileId;
+var fileInfo = await client.GetFileAsync(fileId);
+var filePath = fileInfo.FilePath;
+return filePath;
+}
+
+static async Task ProccesSendAudio(ITelegramBotClient client, Update update)
+{
+
+	Stream stream = System.IO.File.OpenRead(@"D:\wpf work now\TelegramBotExample\TelegramBotExample\Resource\Audio\audioplayback.weba");
+	await client.SendAudioAsync(update.Message.Chat.Id, InputFile.FromStream(stream));
+	
+	
+}
+
+static async Task MenuButtons(ITelegramBotClient client, Message message)
+{
+	var ikm = new ReplyKeyboardMarkup(new[]
+	{
+		new[]
+		{
+			new KeyboardButton("1" ),
+			new KeyboardButton("2"),
+		},
+		new[]
+		{
+			new KeyboardButton("3"),
+			new KeyboardButton("4"),
+		}
+	});
+
+	await client.SendTextMessageAsync(
+		message.Chat.Id, 
+		"Приветсвую, вас! " +
+		"Благодарю что воспользовались этим примером. " +
+		"Давайте вместе начнем работу и посмотрим возможности телеграм бота." +
+		"Обратите внимание на кнопки слева и справа от поля ввода сообщения.", 
+		replyMarkup: ikm
+		);
+}
+
+static async Task CardPostWithLink(ITelegramBotClient client, Message message)
+{
+	var link = new Hyperlink() { NavigateUri = new Uri("http://stackoverflow.com"), Name = "жмакни" };
+	using (Stream stream = System.IO.File.OpenRead(@"D:\wpf work now\TelegramBotExample\TelegramBotExample\Resource\Image\закат.jpg"))
+	{
+		await client.SendPhotoAsync(
+			message.Chat.Id,
+			InputFile.FromStream(stream),
+	   null,
+	   @"Какая красота, а! 
+		Жмакни же! 
+		https://mangalib.me/bungou-stray-dogs?section=info&ui=627294"
+		);
+	}
+}
