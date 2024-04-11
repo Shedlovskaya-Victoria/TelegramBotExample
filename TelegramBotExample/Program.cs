@@ -1,23 +1,14 @@
 ﻿// See https://aka.ms/new-console-template for more information
-using System.IO;
-using System.Security;
-using Microsoft.CognitiveServices.Speech;
-using Microsoft.CognitiveServices.Speech.Audio;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using TelegramBotExample.Tools;
-using Windows.Media.SpeechSynthesis;
-using Windows.UI.Text;
-using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Documents;
-using static System.Net.WebRequestMethods;
 using File = System.IO.File;
 bool RegisterEmail = false;
 bool RegisterPassword = false;
 string Email = "";
-PasswordBox Password = new();
+string Password ;
 
 Console.WriteLine("Hello, World!");
 try
@@ -77,10 +68,8 @@ async Task Update(ITelegramBotClient client, Update update, CancellationToken to
 			}
 			else if(update.CallbackQuery.Data == "register")
 			{
-				//update.CallbackQuery.From.Id;
-                await client.SendTextMessageAsync(update.CallbackQuery.From.Id, $"fff");
                 RegisterEmail = true;
-				BotAnswer(client, update.Message ,"Отправьте вашу почту.");    //TODO: не ловит Chat.Id
+				BotAnswer(client, update ,"Отправьте вашу почту.");    
 			}
 			break;
 		default:
@@ -90,30 +79,37 @@ async Task Update(ITelegramBotClient client, Update update, CancellationToken to
 	{
 		ConsoleControl(update);
 
-		TextProcess(client, update.Message);
+		var answer = TextProcess(client, update.Message);
+		if(!string.IsNullOrEmpty(answer.Result))
+			BotAnswer(client, update, answer.Result);
 
 		if (RegisterEmail == true)
 		{
-				Email = update.Message.Text;
+			Email = update.Message.Text;
 
 			RegisterEmail = false;
+			BotAnswer(client, update, "Отправьте пароль.");
+
 			RegisterPassword = true;
-			BotAnswer(client, update.Message, "Отправьте пароль.");
 		}
 		if (RegisterPassword == true)
 		{
-			Password.Password =  update.Message.Text ;
-			RegisterPassword = false;
+			if(update.Message.Text!=Email)
+			{
+				Password = update.Message.Text;
+				RegisterPassword = false;
 
-			RegisterWithEmail.Register(Email);          //TODO:
+				RegisterWithEmail.Register(Email, Password, $"{update.Message.Chat.FirstName} {update.Message.Chat.LastName}");
 
-			BotAnswer(client, update.Message, 
-				"Поздравляю! На каком-то несуществующем сайте вы дай бог зарегистрованы, проверьте вашу почту.");
+				BotAnswer(client, update,
+					"Поздравляю! На каком-то несуществующем сайте вы дай бог зарегистрованы, проверьте вашу почту.");
+
+			}
 		}
 
 		if (update.Message.Photo != null)
 		{
-			await BotAnswer(client, update.Message, "Фото это конечно круто. Я знаю о таком. " +
+			await BotAnswer(client, update, "Фото это конечно круто. Я знаю о таком. " +
 				"Но лучше отошли файликом. " +
 				"Выберите другой формат при отправке");
 			return;
@@ -121,7 +117,7 @@ async Task Update(ITelegramBotClient client, Update update, CancellationToken to
 
 		if (update.Message.Document != null)
 		{
-			await BotAnswer(client, update.Message, "Ща, погодь, сделаю лучше.");
+			await BotAnswer(client, update, "Ща, погодь, сделаю лучше.");
 
 			await ProcessUpdatePhotoDocument(client, update);
 
@@ -129,7 +125,7 @@ async Task Update(ITelegramBotClient client, Update update, CancellationToken to
 		}
 		if (update.Message.Voice != null)
 		{
-			await BotAnswer(client, update.Message, "Ща, погодь, распознаю аудио.");
+			await BotAnswer(client, update, "Ща, погодь, распознаю аудио.");
 
 			return;
 		}
@@ -185,7 +181,7 @@ async Task ProcessAudioText(ITelegramBotClient client, Update update)
 	await BotAnswer(client, update.Message, "");
 }
 */
-async void TextProcess(ITelegramBotClient client, Message message)
+async Task<string> TextProcess(ITelegramBotClient client, Message message)
 {
 	
 	if (message.Text != null)
@@ -194,34 +190,26 @@ async void TextProcess(ITelegramBotClient client, Message message)
 		{
 			if (message.Text.ToLower() == "/" | message.Text.ToLower() == "/list")
 			{
-				await BotAnswer(client, message, @"Доступные команды бота: 
+				return @"Доступные команды бота: 
 					/start - начало работы
 					/list - возвращает список команд
 					/уля-ля - секрет
 					/resource - пост с его кнопками
 					справа от поля ввода кнопки бота 
-					отправьте фотографию документом и получите улучшеную версию");
-				return;
-			}
+					отправьте фотографию документом и получите улучшеную версию";
 
+			}
 			else if (message.Text.ToLower() == "/уля-ля")
 			{
-				await BotAnswer(client, message, @"Хочу пожелать тебе большой-большой удачи во всех начинаниях! Пусть она прилагается ко всем твоим стараниям! Настойчиво и упорно иди к целям, не отступай ни на шаг и не сомневайся в себе ни на секунду. Знай, что у тебя все получится, ведь если ты по-настоящему к этому стремишься, то заслуживаешь этого!");
-				return;
+				return @"Хочу пожелать тебе большой-большой удачи во всех начинаниях! Пусть она прилагается ко всем твоим стараниям! Настойчиво и упорно иди к целям, не отступай ни на шаг и не сомневайся в себе ни на секунду. Знай, что у тебя все получится, ведь если ты по-настоящему к этому стремишься, то заслуживаешь этого!";
+
 			}
-			else if (message.Text.ToLower() == "1") 
-			{
-				await BotAnswer(client, message,"11");       //TODO: не ловит простой текст
-				return;										//а ведь менюшные кнопки отправляют такой
-			}
-			
-			
 			else if (message.Text.ToLower() == "/resource")
 			{
 
-				var ikm = new InlineKeyboardMarkup(new[] 
+				var ikm = new InlineKeyboardMarkup(new[]
 				{
-				
+
 					new[]
 					{
 						InlineKeyboardButton.WithCallbackData("аудио", "audio"),
@@ -229,38 +217,54 @@ async void TextProcess(ITelegramBotClient client, Message message)
 
 					},
 					new[]
-					{                    
+					{
 						InlineKeyboardButton.WithCallbackData("регистрация через почту", "register"),
 					},
 				});
 
 				await client.SendTextMessageAsync(message.Chat.Id, "Давайте узнаем какими функицями уже овладел бот. " +
 					"Нажмите на кнопку и посмотрим не сломает ли это ваш компьютер! " +
-					"Ух, любопытство!", replyMarkup: ikm );
-
-				return;
+					"Ух, любопытство!", replyMarkup: ikm);
+				return null;
 			}
 			else if (message.Text.ToLower() == "/start")
 			{
 				await MenuButtons(client, message);
 				await CardPostWithLink(client, message);
-				return;
-			}
+				return null;
 
+			}
+			else
+				return null;
 		}
-		else
+		else 
 		{
-			await BotAnswer(client, message, "Команда выводящая список возможностей бота: /list");
-			return;
+			if (message.Text.ToLower() == "1")
+			{
+				return "11";
+			}
+			else
+				return null;
 		}
+		
+	}
+	else
+	{
+		return "Команда выводящая список возможностей бота: /list";
 	}
 }
 
 Console.ReadLine();
 
-async Task BotAnswer(ITelegramBotClient client, Message message, string answer)
+async Task BotAnswer(ITelegramBotClient client,Update update, string answer)
 {
-	await client.SendTextMessageAsync(message.Chat.Id, $"{answer}");
+	long id;
+	if (update.Message == null)
+		id = update.CallbackQuery.From.Id;
+	else
+		id = update.Message.Chat.Id;
+
+	await client.SendTextMessageAsync(id, $"{answer}");
 }
 
 static void ConsoleControl(Update update, string button = "нет нажатия")
@@ -269,7 +273,7 @@ static void ConsoleControl(Update update, string button = "нет нажатия
 	Console.WriteLine($"{update.Message.Chat.FirstName ?? "Имени нет"} " +
 		$"{update.Message.Chat.LastName ?? "фамилии нет"}    |   " +
 		$"Date: {update.Message.Date}    |   " +
-		$"{update.Message.Text ?? $"текста нет. формат сообщения: {update.Message.Type}"}");
+		$"{update.Message.Text ?? $"текста нет. формат сообщения: " + update.Message.Type }" );
 	Console.WriteLine();
 	
 }
@@ -354,6 +358,7 @@ if (System.IO.File.Exists(destinationFilePath))
 
 static async Task<string?> GetFilePath(ITelegramBotClient client, Update update)
 {
+	
 var fileId = update.Message.Document.FileId;
 var fileInfo = await client.GetFileAsync(fileId);
 var filePath = fileInfo.FilePath;
@@ -406,7 +411,6 @@ static async Task MenuButtons(ITelegramBotClient client, Message message)
 
 static async Task CardPostWithLink(ITelegramBotClient client, Message message)
 {
-	var link = new Hyperlink() { NavigateUri = new Uri("http://stackoverflow.com"), Name = "жмакни" };
 	using (Stream stream = System.IO.File.OpenRead(@$"{Environment.CurrentDirectory}\Resource\Image\закат.jpg"))
 	{
 		await client.SendPhotoAsync(

@@ -22,7 +22,6 @@
     <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.36.0" />
     <PackageReference Include="Telegram.Bot" Version="19.0.0" />
     <PackageReference Include="Uno" Version="8.0.5" />
-    <PackageReference Include="Uno.UI" Version="5.1.104" />
   </ItemGroup>
 
 </Project>
