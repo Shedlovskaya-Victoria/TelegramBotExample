@@ -19,5 +19,12 @@ namespace TelegramBotExample.Tools
 			Console.WriteLine();
 
 		}
+
+		public static void WriteExeption(Exception ex, string description)
+		{
+			Console.WriteLine();
+			Console.WriteLine(description + ex.Message);
+			Console.WriteLine();
+		}
 	}
 }

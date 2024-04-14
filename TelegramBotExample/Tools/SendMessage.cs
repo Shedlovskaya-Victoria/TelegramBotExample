@@ -51,12 +51,36 @@ namespace TelegramBotExample.Tools
 		public static async Task BotAnswer(ITelegramBotClient client, Update update, string answer)
 		{
 			long id;
+			id = GetChatId(update);
+
+			await client.SendTextMessageAsync(id, $"{answer}");
+		}
+
+	    static long GetChatId(Update update)
+		{
+			long id;
 			if (update.Message == null)
 				id = update.CallbackQuery.From.Id;
 			else
 				id = update.Message.Chat.Id;
+			return id;
+		}
 
-			await client.SendTextMessageAsync(id, $"{answer}");
+		public static async Task ProccesSendAudio(ITelegramBotClient client, Update update)
+		{
+			try
+			{
+				string filePath = @$"{Environment.CurrentDirectory}\Resource\Audio\audioplayback.weba";
+				Stream stream = System.IO.File.OpenRead(filePath);
+				var id = GetChatId(update);
+				await client.SendAudioAsync(id, InputFile.FromStream(stream));
+			}
+			catch (Exception e)
+			{
+				TrackingApp.ConsoleControl(update);
+				TrackingApp.WriteExeption(e, "Ошибка отправки аудио: ");
+			}
+
 		}
 	}
 }

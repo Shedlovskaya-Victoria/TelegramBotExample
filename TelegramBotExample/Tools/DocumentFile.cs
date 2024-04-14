@@ -25,12 +25,12 @@ namespace TelegramBotExample.Tools
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine();
-				Console.WriteLine("Ошибка загрузки файла: " + ex.Message);
-				Console.WriteLine();
+				TrackingApp.WriteExeption(ex, "Ошибка загрузки файла: ");
 				return null;
 			}
 		}
+
+		
 
 		public static async Task<string?> DownloadFromTelegramToApp(ITelegramBotClient client, Update update, string filePath)
 		{

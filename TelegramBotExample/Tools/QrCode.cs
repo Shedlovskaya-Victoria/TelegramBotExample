@@ -26,9 +26,7 @@ namespace TelegramBotExample.Tools
 				return qrcode as Image; // pictureBox выводит qrcode как изображение.
 			} catch(Exception ex)
 			{
-				Console.WriteLine();
-				Console.WriteLine("Ошибка создания qr code: " + ex.Message);
-				Console.WriteLine();
+				TrackingApp.WriteExeption(ex, "Ошибка создания qr code: ");
 
 				return null;
 			}
@@ -42,9 +40,7 @@ namespace TelegramBotExample.Tools
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine();
-				Console.WriteLine("Ошибка чтения qr code: " + ex.Message);
-				Console.WriteLine();
+				TrackingApp.WriteExeption(ex, "Ошибка чтения qr code: ");
 
 				return null;
 			}

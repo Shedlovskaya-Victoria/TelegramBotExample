@@ -50,7 +50,7 @@ async Task Update(ITelegramBotClient client, Update update, CancellationToken to
 
 			if (update.CallbackQuery.Data == "audio")
 			{
-				await AudioFile.ProccesSendAudio(client, update);
+				await SendMessage.ProccesSendAudio(client, update);
 			}
 			else if (update.CallbackQuery.Data == "document")
 			{
