@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Net.Mail;
 using System.Text;
 
 namespace TelegramBotExample.Tools
 {
-	public class RegisterWithEmail
+	public class Email
 	{
-		public static void Register(string toEmail, string passwordRegister, string fioToSend)
+
+		public static void Send(string toEmail, string passwordRegister, string fioToSend)
 		{
 			using (var emailService = new SmtpClient())
 			{
@@ -36,7 +33,7 @@ namespace TelegramBotExample.Tools
 					mailMessage.Body = $"<div class=\"container h-100\">\r\n  <div class=\"row h-100 justify-content-center align-items-center\">\r\n    <form class=\"col-12\">\r\n      <div class=\"form-group\">\r\n        <label >Это письмо от телеграм бота Example</label>  </br>\r\n        <label >Регистрация прошла успешно!</label>\r\n\t\t\t\t</br></br>\r\n        <label >Ваши учетные данные: </label>\r\n\t\t\t\t</br></br>\r\n        <label >Пароль: {passwordRegister} </label>\r\n      </div>\r\n    </form>   \r\n  </div>\r\n</div>";
 					mailMessage.IsBodyHtml = true;
 
-					 emailService.Send(mailMessage);
+					emailService.Send(mailMessage);
 					/*типа способы отправки
 					 * emailService.Send(mailMessage);
 					//emailService.Send("dvikashe@gmail.com", "dvikashe@gmail.com", "test", "body");

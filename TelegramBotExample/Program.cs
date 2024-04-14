@@ -1,4 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using System.Drawing;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -7,8 +8,9 @@ using TelegramBotExample.Tools;
 using File = System.IO.File;
 bool RegisterEmail = false;
 bool RegisterPassword = false;
+bool ReadQrCode = false;
 string Email = "";
-string Password ;
+string Password = "";
 
 Console.WriteLine("Hello, World!");
 try
@@ -46,7 +48,7 @@ Task Exaption(ITelegramBotClient client, Exception exception, CancellationToken 
 	Console.WriteLine();
 	Console.WriteLine("Ошибка!");
 	Console.WriteLine();
-	Console.WriteLine(exception.Message.ToString());
+	Console.WriteLine(exception.ToString());
 	Console.WriteLine();
 
 	return null;
@@ -69,7 +71,16 @@ async Task Update(ITelegramBotClient client, Update update, CancellationToken to
 			else if(update.CallbackQuery.Data == "register")
 			{
                 RegisterEmail = true;
-				BotAnswer(client, update ,"Отправьте вашу почту.");    
+				BotAnswer(client, update ,"Отправьте вашу почту.");
+
+				return;
+			}
+			else if(update.CallbackQuery.Data == "readQrCode")
+			{
+				ReadQrCode = true;
+				BotAnswer(client, update ,"Отправьте Qr Code.");
+
+				return;
 			}
 			break;
 		default:
@@ -80,6 +91,7 @@ async Task Update(ITelegramBotClient client, Update update, CancellationToken to
 		ConsoleControl(update);
 
 		var answer = TextProcess(client, update.Message);
+
 		if(!string.IsNullOrEmpty(answer.Result))
 			BotAnswer(client, update, answer.Result);
 
@@ -91,32 +103,43 @@ async Task Update(ITelegramBotClient client, Update update, CancellationToken to
 			BotAnswer(client, update, "Отправьте пароль.");
 
 			RegisterPassword = true;
+
+			return;
 		}
 		if (RegisterPassword == true)
 		{
-			if(update.Message.Text!=Email)
+			if(update.Message.Text!= Email)
 			{
 				Password = update.Message.Text;
 				RegisterPassword = false;
 
-				RegisterWithEmail.Register(Email, Password, $"{update.Message.Chat.FirstName} {update.Message.Chat.LastName}");
+				Image qrcode = Registration.Register(Email, Password, $"{update.Message.Chat.FirstName} " +
+									$"{update.Message.Chat.LastName}");
 
-				BotAnswer(client, update,
-					"Поздравляю! На каком-то несуществующем сайте вы дай бог зарегистрованы, проверьте вашу почту.");
+				await SendQrCode(client, update, Email, Password, qrcode);
+
+				return;
 
 			}
 		}
 
 		if (update.Message.Photo != null)
 		{
-			await BotAnswer(client, update, "Фото это конечно круто. Я знаю о таком. " +
+				await BotAnswer(client, update, "Фото это конечно круто. Я знаю о таком. " +
 				"Но лучше отошли файликом. " +
-				"Выберите другой формат при отправке");
+				"Без сжатия.");
+			
 			return;
 		}
 
 		if (update.Message.Document != null)
 		{
+			if (ReadQrCode)
+			{
+				await ScanQrCode(client, update);
+				return;
+			}
+
 			await BotAnswer(client, update, "Ща, погодь, сделаю лучше.");
 
 			await ProcessUpdatePhotoDocument(client, update);
@@ -133,7 +156,50 @@ async Task Update(ITelegramBotClient client, Update update, CancellationToken to
 
 	}
 
+	async Task ScanQrCode(ITelegramBotClient client, Update update)
+	{
+		//получить путь 
+		string? filePath = await GetFilePath(client, update);
+		//скачать файл
+		string? destinationFilePath = await DownloadFromTelegramToApp(client, update, filePath);
+		if (!string.IsNullOrEmpty(filePath))
+		{
+			var qrCodeMessage = QrCode.Read(Image.FromFile(destinationFilePath));
 
+			if (!string.IsNullOrEmpty(qrCodeMessage))
+				BotAnswer(client, update, qrCodeMessage);
+			else
+				BotAnswer(client, update, "Произошла неявная ошибка. Попробуйте сначала четко следуя всем инструкциям.");
+
+			CheckToProblemFile(filePath);
+			CheckToProblemFile(destinationFilePath);
+
+		}
+		else
+		{
+			BotAnswer(client, update, "Произошла неявная ошибка. Попробуйте сначала четко следуя всем инструкциям.");
+		}
+		ReadQrCode = false;
+	}
+
+	async Task SendQrCode(ITelegramBotClient client, Update update, string Email, string Password, Image qrcode)
+	{
+		if (qrcode != null)
+		{
+			string pathToIQrCode = UploadQrCode(qrcode);
+
+			await BotAnswer(client, update,
+				"Поздравляю! На каком-то несуществующем сайте вы дай бог зарегистрованы, проверьте вашу почту.");
+
+			await SendMessageWithPicture(client, update.Message, pathToIQrCode, "Ваш Qr Code.");
+
+			CheckToProblemFile(pathToIQrCode);
+		}
+		else
+		{
+			BotAnswer(client, update, "Произошла неявная ошибка. Попробуйте сначала четко следуя всем инструкциям.");
+		}
+	}
 }
 /*
  // This example requires environment variables named "SPEECH_KEY" and "SPEECH_REGION"
@@ -183,8 +249,9 @@ async Task ProcessAudioText(ITelegramBotClient client, Update update)
 */
 async Task<string> TextProcess(ITelegramBotClient client, Message message)
 {
-	
-	if (message.Text != null)
+	if (ReadQrCode)
+		return null;
+	else if (message.Text != null)
 	{
 		if (message.Text.ToLower().StartsWith("/"))
 		{
@@ -219,6 +286,10 @@ async Task<string> TextProcess(ITelegramBotClient client, Message message)
 					new[]
 					{
 						InlineKeyboardButton.WithCallbackData("регистрация через почту", "register"),
+					},
+					new[]
+					{
+						InlineKeyboardButton.WithCallbackData("сканировать Qr Code", "readQrCode"),
 					},
 				});
 
@@ -267,52 +338,52 @@ async Task BotAnswer(ITelegramBotClient client,Update update, string answer)
 	await client.SendTextMessageAsync(id, $"{answer}");
 }
 
-static void ConsoleControl(Update update, string button = "нет нажатия")
-{
-	Console.WriteLine();
-	Console.WriteLine($"{update.Message.Chat.FirstName ?? "Имени нет"} " +
-		$"{update.Message.Chat.LastName ?? "фамилии нет"}    |   " +
-		$"Date: {update.Message.Date}    |   " +
-		$"{update.Message.Text ?? $"текста нет. формат сообщения: " + update.Message.Type }" );
-	Console.WriteLine();
-	
-}
 
-static async Task ProcessUpdatePhotoDocument(ITelegramBotClient client, Update update)
+
+ async Task ProcessUpdatePhotoDocument(ITelegramBotClient client, Update update)
 {
 	//получить путь
 	string? filePath = await GetFilePath(client, update);
-
-	//скачать файл
-	string? destinationFilePath = await DownloadFromTelegramToApp(client, update, filePath);
-
-	//типа улучшие фотку...
-	//TODO: проблема неподдерживаемых классов WinForms
-	/*
-	//отправить на сайт для обработки
-	Message message = await client.SendPhotoAsync(update.Message.Chat.Id,
-		InputFile.FromUri($"https://snapedit.app/ru/enhance/upload/{update.Message.Document.FileName}"));
-	//открыть браузер
-	System.Diagnostics.Process.Start(@"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe");
-	Thread.Sleep(5000);  // пауза 5 секунд
-
-	//кликаем по кнопке скачать
-	HTMLCollection elmCol;
-	var webBrowser1 = new WebBrowser();
-	elmCol = webBrowser1.Document.GetElementsByTagName("button");
-	foreach (HTMLBodyElement elmBtn in elmCol)
+	if (!string.IsNullOrEmpty(filePath))
 	{
-		if (elmBtn.GetAttribute("className") == "inline-flex items-center justify-center w-full py-3 px-4 bg-blue-500 rounded-lg text-base transition text-white hover:bg-opacity-80")
+		//скачать файл
+		string? destinationFilePath = await DownloadFromTelegramToApp(client, update, filePath);
+
+		//типа улучшие фотку...
+		//TODO: проблема неподдерживаемых классов WinForms
+		/*
+		//отправить на сайт для обработки
+		Message message = await client.SendPhotoAsync(update.Message.Chat.Id,
+			InputFile.FromUri($"https://snapedit.app/ru/enhance/upload/{update.Message.Document.FileName}"));
+		//открыть браузер
+		System.Diagnostics.Process.Start(@"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe");
+		Thread.Sleep(5000);  // пауза 5 секунд
+
+		//кликаем по кнопке скачать
+		HTMLCollection elmCol;
+		var webBrowser1 = new WebBrowser();
+		elmCol = webBrowser1.Document.GetElementsByTagName("button");
+		foreach (HTMLBodyElement elmBtn in elmCol)
 		{
-			elmBtn.InvokeMember("Click");
+			if (elmBtn.GetAttribute("className") == "inline-flex items-center justify-center w-full py-3 px-4 bg-blue-500 rounded-lg text-base transition text-white hover:bg-opacity-80")
+			{
+				elmBtn.InvokeMember("Click");
+			}
 		}
+		*/
+
+		//отправить в чат
+		await SendFileToUser(client, update, destinationFilePath);
+
+		CheckToProblemFile(filePath);
+		CheckToProblemFile(destinationFilePath);
 	}
-	*/
+	else
+	{
+		await BotAnswer(client, update, "Произошла неявная ошибка. Попробуйте сначала четко следуя всем инструкциям.");
 
-//отправить в чат
-  await SendFileToUser(client, update, destinationFilePath);
+	}
 
- CleanAppFolder(filePath, destinationFilePath);
 }
 
 static async Task<string?> DownloadFromTelegramToApp(ITelegramBotClient client, Update update, string filePath)
@@ -347,22 +418,22 @@ using (Stream stream = File.OpenRead(destinationFilePath))
 }
 }
 
-static void CleanAppFolder(string? filePath, string destinationFilePath)
-{
-if (System.IO.File.Exists(filePath))
-	File.Delete(filePath);
-
-if (System.IO.File.Exists(destinationFilePath))
-	File.Delete(destinationFilePath);
-}
 
 static async Task<string?> GetFilePath(ITelegramBotClient client, Update update)
 {
-	
-var fileId = update.Message.Document.FileId;
-var fileInfo = await client.GetFileAsync(fileId);
-var filePath = fileInfo.FilePath;
-return filePath;
+	try
+	{
+	   var fileId = update.Message.Document.FileId;
+		var fileInfo = await client.GetFileAsync(fileId);
+		var filePath = fileInfo.FilePath;
+		return filePath;
+	} catch(Exception ex)
+	{
+		Console.WriteLine();
+		Console.WriteLine("Ошибка загрузки файла: "+ ex.Message);
+		Console.WriteLine();
+		return null;
+	}
 }
 
 static async Task ProccesSendAudio(ITelegramBotClient client, Update update)
@@ -376,7 +447,7 @@ static async Task ProccesSendAudio(ITelegramBotClient client, Update update)
 	catch(Exception e)
 	{
 		ConsoleControl(update);
-		Console.WriteLine(e.Message.ToString());
+		Console.WriteLine("Ошибка отправки аудио: " + e.Message.ToString());
 		Console.WriteLine();
 	}
 	
@@ -411,15 +482,47 @@ static async Task MenuButtons(ITelegramBotClient client, Message message)
 
 static async Task CardPostWithLink(ITelegramBotClient client, Message message)
 {
-	using (Stream stream = System.IO.File.OpenRead(@$"{Environment.CurrentDirectory}\Resource\Image\закат.jpg"))
-	{
-		await client.SendPhotoAsync(
-			message.Chat.Id,
-			InputFile.FromStream(stream),
-	   null,
-	   @"Какая красота, а! 
+	await SendMessageWithPicture(client, message, @$"{Environment.CurrentDirectory}\Resource\Image\закат.jpg",
+		 @"Какая красота, а! 
 		Жмакни же! 
-		https://mangalib.me/bungou-stray-dogs?section=info&ui=627294"
-		);
+		https://mangalib.me/bungou-stray-dogs?section=info&ui=627294");
+}
+
+static async Task SendMessageWithPicture(ITelegramBotClient client, Message message, string pathToImage, string description = "")
+{
+	if(!string.IsNullOrEmpty(pathToImage))
+	{
+		using (Stream stream = System.IO.File.OpenRead(pathToImage))
+		{
+			await client.SendPhotoAsync(
+				message.Chat.Id,
+				InputFile.FromStream(stream),
+			null,
+			description
+			);
+		}
 	}
+	
+}
+
+static string UploadQrCode(Image qrcode)
+{
+	var pathToIQrCode = "QrCode.png";
+
+	if (File.Exists(pathToIQrCode))
+		File.Delete(pathToIQrCode);
+
+	qrcode.Save(pathToIQrCode);
+
+	return pathToIQrCode;
+}
+static void ConsoleControl(Update update, string button = "нет нажатия")
+{
+	Console.WriteLine();
+	Console.WriteLine($"{update.Message.Chat.FirstName ?? "Имени нет"} " +
+		$"{update.Message.Chat.LastName ?? "фамилии нет"}    |   " +
+		$"Date: {update.Message.Date}    |   " +
+		$"{update.Message.Text ?? $"текста нет. формат сообщения: " + update.Message.Type}");
+	Console.WriteLine();
+
 }
