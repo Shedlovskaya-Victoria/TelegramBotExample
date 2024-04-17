@@ -11,12 +11,26 @@ namespace TelegramBotExample.Tools
 	{
 		public static void ConsoleControl(Update update, string button = "нет нажатия")
 		{
-			Console.WriteLine();
-			Console.WriteLine($"{update.Message.Chat.FirstName ?? "Имени нет"} " +
-				$"{update.Message.Chat.LastName ?? "фамилии нет"}    |   " +
-				$"Date: {update.Message.Date}    |   " +
-				$"{update.Message.Text ?? $"текста нет. формат сообщения: " + update.Message.Type}");
-			Console.WriteLine();
+			if(update.Message == null)
+			{
+				Console.WriteLine();
+				Console.WriteLine($"{update.CallbackQuery.Message.Chat.FirstName ?? "Имени нет"} " +
+					$"{update.CallbackQuery.Message.Chat.LastName ?? "фамилии нет"}    |   " +
+					$"Date: {update.CallbackQuery.Message.Date}    |   " +
+					$"button: {button}");
+				Console.WriteLine();
+			}
+			else
+			{
+				Console.WriteLine();
+				Console.WriteLine($"{update.Message.Chat.FirstName ?? "Имени нет"} " +
+					$"{update.Message.Chat.LastName ?? "фамилии нет"}    |   " +
+					$"Date: {update.Message.Date}    |   " +
+					$"{update.Message.Text ?? $"текста нет. формат сообщения: " + update.Message.Type}    |   " +
+					$"button: {button}");
+				Console.WriteLine();
+			}
+			
 
 		}
 

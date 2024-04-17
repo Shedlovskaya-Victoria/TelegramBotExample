@@ -56,7 +56,7 @@ namespace TelegramBotExample.Tools
 			await client.SendTextMessageAsync(id, $"{answer}");
 		}
 
-	    static long GetChatId(Update update)
+	    public static long GetChatId(Update update)
 		{
 			long id;
 			if (update.Message == null)

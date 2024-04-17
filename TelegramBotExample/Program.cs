@@ -47,17 +47,22 @@ async Task Update(ITelegramBotClient client, Update update, CancellationToken to
 	switch (update.Type)
 	{
 		case UpdateType.CallbackQuery:
-
+			
 			if (update.CallbackQuery.Data == "audio")
 			{
-				await SendMessage.ProccesSendAudio(client, update);
+				TrackingApp.ConsoleControl(update, "audio");
+				await SendMessage.ProccesSendAudio(client, update); 
 			}
 			else if (update.CallbackQuery.Data == "document")
 			{
+				TrackingApp.ConsoleControl(update, "document");
+				await TextCommand.WordDataButton(client, update, "Отправьте эти данные для шаблона!");
+				//WordFile.CreateWordFile();
 
 			}
 			else if (update.CallbackQuery.Data == "register")
 			{
+				TrackingApp.ConsoleControl(update, "register");
 				RegisterEmail = true;
 				SendMessage.BotAnswer(client, update, "Отправьте вашу почту.");
 
@@ -65,6 +70,7 @@ async Task Update(ITelegramBotClient client, Update update, CancellationToken to
 			}
 			else if (update.CallbackQuery.Data == "readQrCode")
 			{
+				TrackingApp.ConsoleControl(update, "readQrCode");
 				ReadQrCode = true;
 				SendMessage.BotAnswer(client, update, "Отправьте Qr Code.");
 
@@ -78,7 +84,7 @@ async Task Update(ITelegramBotClient client, Update update, CancellationToken to
 	{
 		TrackingApp.ConsoleControl(update);
 
-		var answer = TextCommand.TextProcess(client, update.Message, ReadQrCode);
+		var answer = TextCommand.TextProcess(client, update, ReadQrCode);
 
 		if (!string.IsNullOrEmpty(answer.Result))
 			SendMessage.BotAnswer(client, update, answer.Result);
@@ -192,16 +198,4 @@ async Task Update(ITelegramBotClient client, Update update, CancellationToken to
 }
 
 Console.ReadLine();
-
-
-
-
-
-
-
-
-
-
-
-
 

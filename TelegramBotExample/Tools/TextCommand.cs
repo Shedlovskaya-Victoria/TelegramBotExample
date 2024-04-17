@@ -11,15 +11,18 @@ namespace TelegramBotExample.Tools
 {
 	public class TextCommand
 	{
-		public static async Task<string> TextProcess(ITelegramBotClient client, Message message, bool ReadQrCode = false)
+		public	static bool Title = false;
+		public static bool FioDirector = false;
+		public static bool Year = false;
+		public static async Task<string> TextProcess(ITelegramBotClient client, Update update, bool ReadQrCode = false)
 		{
 			if (ReadQrCode)
 				return null;
-			else if (message.Text != null)
+			else if (update.Message.Text != null)
 			{
-				if (message.Text.ToLower().StartsWith("/"))
+				if (update.Message.Text.ToLower().StartsWith("/"))
 				{
-					if (message.Text.ToLower() == "/" | message.Text.ToLower() == "/list")
+					if (update.Message.Text.ToLower() == "/" | update.Message.Text.ToLower() == "/list")
 					{
 						return @"Доступные команды бота: 
 					/start - начало работы
@@ -30,17 +33,128 @@ namespace TelegramBotExample.Tools
 					отправьте фотографию документом и получите улучшеную версию";
 
 					}
-					else if (message.Text.ToLower() == "/уля-ля")
+					else if (update.Message.Text.ToLower() == "/уля-ля")
 					{
 						return @"Хочу пожелать тебе большой-большой удачи во всех начинаниях! Пусть она прилагается ко всем твоим стараниям! Настойчиво и упорно иди к целям, не отступай ни на шаг и не сомневайся в себе ни на секунду. Знай, что у тебя все получится, ведь если ты по-настоящему к этому стремишься, то заслуживаешь этого!";
 
 					}
-					else if (message.Text.ToLower() == "/resource")
+					else if (update.Message.Text.ToLower() == "/resource")
 					{
+						await FunctionAppPotencialButton(client, update);
+						return null;
+					}
+					else if (update.Message.Text.ToLower() == "/start")
+					{
+						await BaseKeyBoard(client, update);
 
-						var ikm = new InlineKeyboardMarkup(new[]
-						{
+						await SendMessage.CardPostWithLink(client, update.Message);
 
+						return null;
+
+					}
+					else
+						return null;
+				}
+				else
+				{
+					return await ProccesFillingWordDocData(client, update);
+				}
+
+			}
+			else
+			{
+				return "Команда выводящая список возможностей бота: /list";
+			}
+
+			static async Task<string> ProccesFillingWordDocData(ITelegramBotClient client, Update update)
+			{
+				if (update.Message.Text == "1. Название документа")
+				{
+					Title = true;
+
+					return null;
+				}
+				if (Title)
+				{
+					if (update.Message.Text != "1. Название документа")
+					{
+						WordFile.Title = update.Message.Text;
+						await WordDataButton(client, update, "название принято!");
+						Title = false;
+					}
+
+					return null;
+				}
+				else if (update.Message.Text == "2. Фио директора")
+				{
+					FioDirector = true;
+
+					return null;
+				}
+				if (FioDirector)
+				{
+					if (update.Message.Text != "2. Фио директора")
+					{
+						WordFile.FioDirector = update.Message.Text;
+						await WordDataButton(client, update, "фио директора принято!");
+						FioDirector = false;
+					}
+
+					return null;
+				}
+				else if (update.Message.Text == "3. Год документа")
+				{
+					Year = true;
+
+					return null;
+				}
+				else if (Year)
+				{
+					if (update.Message.Text != "3. Год документа")
+					{
+						WordFile.Year = update.Message.Text;
+						await WordDataButton(client, update, "год документа принят!");
+						Year = false;
+					}
+
+					return null;
+				}
+				if (update.Message.Text == "Завершить")
+				{
+					await TextCommand.BaseKeyBoard(client, update);
+					WordFile.ReplaceText(client, update);
+
+					return "Проверь свой рабочий стол на Word файлик ReplaceAllText.docx";
+				}
+				if (!string.IsNullOrEmpty(WordFile.Title) &&
+					!string.IsNullOrEmpty(WordFile.Year) &&
+					!string.IsNullOrEmpty(WordFile.FioDirector))
+				{
+
+				await TextCommand.MenuButtons(client, update, new List<KeyboardButton[]>()
+				{
+					new[]
+					{
+						new KeyboardButton("1. Название документа"),
+						new KeyboardButton("2. Фио директора"),
+					},
+					new[]
+					{
+						new KeyboardButton("3. Год документа"),
+						new KeyboardButton("Завершить"),
+					}
+				}, "все данные приняты!");
+
+					return "Обрабатываю!";
+				}
+				else
+					return null;
+			}
+
+			static async Task FunctionAppPotencialButton(ITelegramBotClient client, Update update)
+			{
+				var ikm = new InlineKeyboardMarkup(new[]
+				{
 					new[]
 					{
 						InlineKeyboardButton.WithCallbackData("аудио", "audio"),
@@ -57,64 +171,62 @@ namespace TelegramBotExample.Tools
 					},
 				});
 
-						await client.SendTextMessageAsync(message.Chat.Id, "Давайте узнаем какими функицями уже овладел бот. " +
-							"Нажмите на кнопку и посмотрим не сломает ли это ваш компьютер! " +
-							"Ух, любопытство!", replyMarkup: ikm);
-						return null;
-					}
-					else if (message.Text.ToLower() == "/start")
-					{
-						await MenuButtons(client, message);
-						await SendMessage.CardPostWithLink(client, message);
-						return null;
+				await client.SendTextMessageAsync(update.Message.Chat.Id, "Давайте узнаем какими функицями уже овладел бот. " +
+					"Нажмите на кнопку и посмотрим не сломает ли это ваш компьютер! " +
+					"Ух, любопытство!", replyMarkup: ikm);
+			}
+		}
 
-					}
-					else
-						return null;
-				}
-				else
+		public static async Task BaseKeyBoard(ITelegramBotClient client, Update update)
+		{
+			await MenuButtons(client, update, new List<KeyboardButton[]>()
+			{
+				new KeyboardButton[]
 				{
-					if (message.Text.ToLower() == "1")
-					{
-						return "11";
-					}
-					else
-						return null;
+					new KeyboardButton("1" ),
+					new KeyboardButton("2"),
+				},
+				new []
+				{
+					new KeyboardButton("3"),
+					new KeyboardButton("4"),
 				}
-
-			}
-			else
-			{
-				return "Команда выводящая список возможностей бота: /list";
-			}
+			},
+			"Приветсвую, вас! " +
+			"Благодарю что воспользовались этим примером. " +
+			"Давайте вместе начнем работу и посмотрим возможности телеграм бота." +
+			"Обратите внимание на кнопки слева и справа от поля ввода сообщения.");
 		}
 
-		static async Task MenuButtons(ITelegramBotClient client, Message message)
+		public static async Task MenuButtons(ITelegramBotClient client, Update update,
+			 List<KeyboardButton[]> listButton, string description)
 		{
-			var ikm = new ReplyKeyboardMarkup(new[]
-			{
-		new[]
-		{
-			new KeyboardButton("1" ),
-			new KeyboardButton("2"),
-		},
-		new[]
-		{
-			new KeyboardButton("3"),
-			new KeyboardButton("4"),
-		}
-	});
+			var chatId = SendMessage.GetChatId(update);
+
+			var ikm = new ReplyKeyboardMarkup(listButton.ToArray())
+			{ ResizeKeyboard = true };
 
 			await client.SendTextMessageAsync(
-				message.Chat.Id,
-				"Приветсвую, вас! " +
-				"Благодарю что воспользовались этим примером. " +
-				"Давайте вместе начнем работу и посмотрим возможности телеграм бота." +
-				"Обратите внимание на кнопки слева и справа от поля ввода сообщения.",
+				chatId,
+				description,
 				replyMarkup: ikm
 				);
 		}
-
+		public static async Task WordDataButton(ITelegramBotClient client, Update update, string descroption)
+		{
+			await TextCommand.MenuButtons(client, update, new List<KeyboardButton[]>()
+				{
+					new[]
+					{
+					new KeyboardButton("1. Название документа"),
+					new KeyboardButton("2. Фио директора"),
+					},
+					new[]
+					{
+					 new KeyboardButton("3. Год документа")
+					}
+				}, descroption);
+		}
 
 
 	}
