@@ -39,6 +39,7 @@ namespace TelegramBotExample.Tools
                 Spire.Doc.Document document = new();
 
 				//Загрузите образец документа Word 
+				
 				document.LoadFromFile(@$"{Environment.GetFolderPath(Environment.SpecialFolder.Desktop)}\\УП 03 01.docx");
 
 				//Change the text replacement mode to replace the first instance only
@@ -50,7 +51,8 @@ namespace TelegramBotExample.Tools
 				document.Replace("{{YEAR}}", Year, false, true);
 
 				//Сохранить результирующий документ 
-				document.SaveToFile("ReplaceAllText.docx", FileFormat.Docx2019);
+				document.SaveToFile($"{Environment.GetFolderPath(Environment.SpecialFolder.Desktop)}\\ReplaceAllText.docx", 
+					FileFormat.Docx2019);
 				document.Close();
 			}
 			else

@@ -113,7 +113,19 @@ namespace TelegramBotExample.Tools
 					if (update.Message.Text != "3. Год документа")
 					{
 						WordFile.Year = update.Message.Text;
-						await WordDataButton(client, update, "год документа принят!");
+						await TextCommand.MenuButtons(client, update, new List<KeyboardButton[]>()
+						{
+							new[]
+							{
+								new KeyboardButton("1. Название документа"),
+								new KeyboardButton("2. Фио директора"),
+							},
+							new[]
+							{
+								new KeyboardButton("3. Год документа"),
+								new KeyboardButton("Завершить"),
+							}
+						}, "все данные приняты!");
 						Year = false;
 					}
 
@@ -130,21 +142,6 @@ namespace TelegramBotExample.Tools
 					!string.IsNullOrEmpty(WordFile.Year) &&
 					!string.IsNullOrEmpty(WordFile.FioDirector))
 				{
-
-				await TextCommand.MenuButtons(client, update, new List<KeyboardButton[]>()
-				{
-					new[]
-					{
-						new KeyboardButton("1. Название документа"),
-						new KeyboardButton("2. Фио директора"),
-					},
-					new[]
-					{
-						new KeyboardButton("3. Год документа"),
-						new KeyboardButton("Завершить"),
-					}
-				}, "все данные приняты!");
-
 					return "Обрабатываю!";
 				}
 				else
