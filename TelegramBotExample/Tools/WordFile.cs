@@ -40,7 +40,7 @@ namespace TelegramBotExample.Tools
 
 				//Загрузите образец документа Word 
 				
-				document.LoadFromFile(@$"{Environment.GetFolderPath(Environment.SpecialFolder.Desktop)}\\УП 03 01.docx");
+				document.LoadFromFile(@$"УП 03 01.docx");
 
 				//Change the text replacement mode to replace the first instance only
 				document.ReplaceFirst = true;
